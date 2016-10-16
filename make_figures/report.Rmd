@@ -1,0 +1,755 @@
+---
+title: "Plots for resolution paper"
+author: "Richard D. Morey"
+date: "25 August 2016"
+output: pdf_document
+---
+
+Some of this code was adapted from https://github.com/jtleek/replication_paper (in particular, the data loading.)
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+knitr::opts_chunk$set(fig.path='figs/',echo=FALSE, warning=FALSE, message=FALSE)
+
+options(digits = 2)
+library(xtable)
+set.seed(1234)
+
+source('loadData.R',chdir=TRUE)
+source('plot_funcs.R',chdir=TRUE)
+
+par.list = list(las = 1,
+    yaxs="i",mgp = c(2.5,.5,0), tcl = -0.25)
+```
+
+```{r}
+all.idx = c(5, 29, 60, 66, 68)
+all.idx.in.dat = match(pi_dat_nona[all.idx,"ID"],dat$ID)
+
+```
+
+How many total studies are we left with after cleaning?
+```{r echo=FALSE}
+nrow(pi_dat_nona)
+```
+
+```{r zexp,echo=FALSE,fig.width=4,fig.height=8}
+do.call(par,par.list)
+#par(par.list)
+
+par(mfrow=c(2,1),mar=c(4,4.5,1.2,0))
+rr = seq(-.999,.999,len=500)
+
+plot(rr,atanh(rr),ty='l',lwd=2,ylab="Fisher's z",
+     xlab="Correlation",ylim=c(-3,3),xlim=c(-1,1))
+abline(v=c(-1,1),col=rgb(0,0,0,.3))
+
+mtext("A",3,.1,adj=.95,cex=1.5)
+
+
+rr = seq(-.99,.99,len=50)
+
+zz = outer(rr,rr,function(a,b){atanh(b)-atanh(a)})
+qq = c(.1,.3,.5,.7,1,1.5,3)
+qq0 = c(-rev(qq),qq)
+contour(rr,rr,zz,levels=qq0,drawlabels=FALSE,
+        lwd=2,yaxs="i",xaxs="i",xlab="Correlation, original",
+        ylab="Correlation, replication",las=1)
+abline(0,1,col="gray")
+abline(h=seq(-.9,.9,.1),col=rgb(0,0,0,.1))
+abline(v=seq(-.9,.9,.1),col=rgb(0,0,0,.1))
+for(i in 1:length(qq0)){
+  s = uniroot(function(a,d){
+    atanh(a)-atanh(-a) - d
+  },c(-1,1),d=qq0[i])$root
+  TeachingDemos::shadowtext(s-.02,-s+.02,qq0[i],col="black", bg="white",srt=45)
+}
+
+mtext("Diff. in z units",3,.1,adj=.05,cex=1.2)
+
+mtext("B",3,.1,adj=.95,cex=1.5)
+
+
+
+```
+
+```{r powtab,echo=FALSE,fig.width=6,fig.height=10}
+
+old.mar = par()$mar
+par(mar=c(1,6,6,1))
+par(mfrow=c(2,1))
+
+plot(0,0,xlim=c(-1,1),ylim=c(-1,1),axes=FALSE,ylab="",xlab="",ty='n')
+box(lwd=3)
+rect(0,0,2,2,density = 10,col="lightgray",border=NA)
+rect(0,0,-2,-2,density = 10,col="lightgray",border=NA)
+
+abline(v=0,lwd=3)
+abline(h=0,lwd=3)
+
+mtext("State of nature",2,4,cex=2)
+mtext("Decision",3,4,cex=2)
+
+mtext(expression(paste(H[0]," true")),2,adj=.85,cex=1.5)
+mtext(expression(paste(H[0]," false")),2,adj=.15,cex=1.5)
+
+mtext(expression(paste("Reject ", H[0])),3,adj=.85,cex=1.5)
+mtext(expression(paste("Don't reject ",H[0])),3,adj=.15,cex=1.5)
+
+rect(0,0,2,2,density = 10,col="lightgray",border=NA)
+
+text(.5,.6,"Type I error",cex=1.5)
+text(.5,.4,expression(alpha),cex=1.5)
+
+text(-.5,.6,"Correct decision",cex=1.5)
+text(-.5,.4,expression(1-alpha),cex=1.5)
+
+
+text(-.5,-.4,"Type II error",cex=1.5)
+text(-.5,-.6,expression(beta),cex=1.5)
+
+text(.5,-.4,"Correct decision",cex=1.5)
+text(.5,-.6,expression(1-beta),cex=1.5)
+text(.5,-.8,"Power",cex=1.5)
+
+
+par(mar=old.mar)
+do.call(par,par.list)
+
+zz = seq(-2,2,len=100)
+alpha=0.05
+N=c(10,50)
+
+plot(tanh(zz),
+     pnorm(qnorm(alpha/2,0,1/sqrt(N[1]-3)),zz,1/sqrt(N[1]-3))+
+     1-pnorm(qnorm(1-alpha/2,0,1/sqrt(N[1]-3)),zz,1/sqrt(N[1]-3)),ty='l',ylab=expression(paste("power(",rho,")")),ylim=c(0,1),lwd=2,xlab=expression(paste("Correlation ",rho)),xlim=c(-1,1))
+abline(h=alpha,col="gray",lwd=1,lty=2)
+abline(h=.8,col="gray",lwd=1,lty=2)
+
+text(par()$usr[1],alpha,expression(paste("Type I error rate ",alpha)),adj=c(0,-.2),cex=1.3,col="gray")
+
+lines(tanh(zz),
+     pnorm(qnorm(alpha/2,0,1/sqrt(N[2]-3)),zz,1/sqrt(N[2]-3))+
+     1-pnorm(qnorm(1-alpha/2,0,1/sqrt(N[2]-3)),zz,1/sqrt(N[2]-3)),lwd=2,lty=3)
+
+points(0,alpha,pch=21,cex=1.3,col="black",bg="white")
+
+text(-.8,.4,substitute(N==N1,list(N1=N[1])))
+text(.25,.9,substitute(N==N2,list(N2=N[2])))
+
+```
+  
+  
+```{r echo=FALSE} 
+
+get.other.z=Vectorize(function(z,pow1=.8,pow2=.5,alpha=0.05,maxN=1000){
+  get.pow.N = function(N,z,pow1,alpha){
+    crits = qnorm(c(alpha/2,1-alpha/2),0,1/sqrt(N-3))
+    (diff(pnorm(crits,z,1/sqrt(N-3))) - (1-pow1))^2
+  }
+  get.pow.z = function(z,N,pow1,alpha){
+    get.pow.N(N,z,pow1,alpha)
+  }
+
+  Ns = 5:maxN
+  devs = sapply(Ns,get.pow.N,z=z,pow1=pow1,alpha=alpha)
+  reqN = Ns[which.min(devs)]
+  if(get.pow.N(reqN,z=z,pow1=pow1,alpha=alpha)<pow1){
+    reqN = reqN + 1
+  }
+  z2= optimize(get.pow.z,c(0,2*z),N=reqN,pow1=pow2,alpha=alpha)$minimum
+  c(N=reqN,z=z2,alpha=alpha)
+},"z")
+
+```
+
+
+```{r powfail,echo=FALSE,fig.width=6,fig.height=6.5}
+
+
+do.call(par,par.list)
+
+alpha = 0.05
+
+ex.row = 70
+n = pi_dat_nona[ex.row,"n_orig"]
+
+n2 = pi_dat_nona[ex.row,"n_rep"]
+
+crit.z = qnorm(c(alpha/2,1-alpha/2), 0,1/sqrt(n-3))
+true.z1 = .3962035
+true.z2 = 0.277165
+
+y.expand = 1.1
+alpha = 0.05
+
+par(mfrow=c(2,1))
+
+zz = seq(-1,1,len=200)
+yy = dnorm(zz,0,1/sqrt(n-3))
+yy2 = dnorm(zz,true.z1,1/sqrt(n-3))
+yy3 = dnorm(zz,true.z2,1/sqrt(n-3))
+
+plot(zz, yy, ty='l', ylab="Density", xlab="Fisher's z",axes=FALSE,ylim=c(0,y.expand*max(yy)),lwd=2,lty=2)
+box()
+axis(1)
+axis(3, at = seq(-1,1,.5), lab=round(tanh(seq(-1,1,.5)),2))
+mtext("Correlation, r",3,2.5,adj=.5)
+
+lines(zz,yy2,lwd=2,lty=1)
+lines(zz,yy3,lwd=2,lty=1)
+
+abline(v=crit.z,col="gray")
+xx = seq(crit.z[2],max(zz),len=100)
+yy2 = dnorm(xx,true.z1,1/sqrt(n-3))
+yy3 = dnorm(xx,true.z2,1/sqrt(n-3))
+polygon(c(xx,rev(xx)),c(yy2,yy2*0),col=rgb(1,0,0,.3))
+polygon(c(xx,rev(xx)),c(yy3,yy3*0),col=rgb(0,0,1,.3))
+
+mtext("A",3,-2,adj=.05,cex=1.5)
+
+
+dd = seq(.1,1,len=100)
+z = get.other.z(z = dd)
+
+plot(tanh(dd),tanh(z["z",]),ty='l',xlab=expression(paste("If you power 80% to this ",rho,"...")),ylab=expression(paste("..you're likely to miss ",rho,"s less than")),lwd=2)
+
+abline(h=seq(.1,1,.1),col=rgb(0,0,0,.1))
+abline(v=seq(.1,1,.1),col=rgb(0,0,0,.1))
+
+mtext("B",3,-2,adj=.05,cex=1.5)
+
+
+```
+
+```{r powexp,echo=FALSE,fig.width=6,fig.height=6.5}
+
+#example
+ex.row = 70
+
+do.call(par,par.list)
+
+n = pi_dat_nona[ex.row,"n_orig"]
+r = -pi_dat_nona[ex.row,"cor_orig"]
+z = atanh(r)
+
+n2 = pi_dat_nona[ex.row,"n_rep"]
+
+true.cor = .1
+true.z = atanh(true.cor)
+
+y.expand = 1.1
+alpha = 0.05
+
+par(mfrow=c(2,1))
+
+zz = seq(-1,1,len=200)
+yy = dnorm(zz,true.z,1/sqrt(n-3))
+plot(zz, yy, ty='l', ylab="Density", xlab="Fisher's z",axes=FALSE,ylim=c(0,y.expand*max(yy)),lwd=2)
+box()
+axis(1)
+axis(3, at = seq(-1,1,.5), lab=round(tanh(seq(-1,1,.5)),2))
+mtext("Correlation, r",3,2.5,adj=.5)
+mtext(substitute(rho==tc,list(tc=true.cor)),3,-1.5,adj=.95, cex=1.3)
+
+crit = qnorm(alpha, true.z,1/sqrt(n-3))
+abline(v=crit,col="gray")
+xx = seq(min(zz),crit,len=100)
+yy2 = dnorm(xx,true.z,1/sqrt(n-3))
+polygon(c(xx,rev(xx)),c(yy2,yy2*0),col=rgb(1,0,0,.3))
+text(crit,par()$usr[4],substitute(alpha==alp,list(alp=alpha)),
+     srt=90,adj=c(1.1,1.2),col="gray")
+text(crit,par()$usr[4],substitute(r==r0,list(r0=round(tanh(crit),2))),
+     srt=90,adj=c(1.1,-.2),col="gray")
+
+abline(v=z,col="gray")
+xx = seq(min(zz),z,len=100)
+yy2 = dnorm(xx,true.z,1/sqrt(n-3))
+polygon(c(xx,rev(xx)),c(yy2,yy2*0),col=rgb(0,0,1,.3))
+text(z,par()$usr[4],"Observed r",srt=90,adj=c(1.1,-.1),col="gray")
+
+true.cor2 = -.1
+true.z2 = atanh(true.cor2)
+yy = dnorm(zz,true.z2,1/sqrt(n-3))
+plot(zz, yy, ty='l', ylab="Density", xlab="Fisher's z",axes=FALSE,ylim=c(0,y.expand*max(yy)),lwd=2)
+box()
+axis(1)
+axis(3, at = seq(-1,1,.5), lab=round(tanh(seq(-1,1,.5)),2))
+mtext("Correlation, r",3,2.5,adj=.5)
+mtext(substitute(rho==tc,list(tc=true.cor2)),3,-1.5,adj=.95, cex=1.3)
+
+crit = qnorm(alpha, true.z,1/sqrt(n-3))
+abline(v=crit,col="gray")
+xx = seq(min(zz),crit,len=100)
+yy2 = dnorm(xx,true.z2,1/sqrt(n-3))
+polygon(c(xx,rev(xx)),c(yy2,yy2*0),col=rgb(1,0,0,.3))
+text(crit,par()$usr[4],substitute(alpha==alp,list(alp=alpha)),
+     srt=90,adj=c(1.5,1.2),col="gray")
+```
+
+
+```{r powexp2,echo=FALSE,fig.width=6,fig.height=6.5}
+
+do.call(par,par.list)
+
+par(mfrow=c(2,1))
+
+zz = seq(-1,1,len=200)
+yy = pnorm(crit,zz,1/sqrt(n-3))
+plot(zz, yy, ylab="Power", xlab="True Fisher's z",axes=FALSE,ylim=c(0,y.expand*max(yy)),lwd=2,ty='n')
+zz = seq(-1.2,true.z,len=200)
+yy = pnorm(crit,zz,1/sqrt(n-3))
+lines(zz, yy,lwd=2)
+abline(v = true.z, col="gray")
+text(true.z,par()$usr[4],substitute(rho==rh,list(rh=true.cor)),
+     srt=90,adj=c(1.5,1.2),col="gray")
+
+box()
+axis(1)
+axis(2,at=0:4/4)
+axis(3, at = seq(-1,1,.5), lab=round(tanh(seq(-1,1,.5)),2))
+mtext(expression(paste("True correlation, ",rho)),3,2.5,adj=.5)
+mtext(substitute(rho>=tc,list(tc=true.cor)),3,-1.5,adj=.95, cex=1.3)
+
+segments(true.z2,0,true.z2,pnorm(crit,true.z2,1/sqrt(n-3)),col="red")
+segments(true.z2,pnorm(crit,true.z2,1/sqrt(n-3)),-1.2,pnorm(crit,true.z2,1/sqrt(n-3)),col="red")
+
+
+crit2 = qnorm(alpha, 0,1/sqrt(n2-3))
+
+zz = seq(-1,1,len=200)
+yy = pnorm(crit2,zz,1/sqrt(n2-3))
+plot(zz, yy, ylab="Power", xlab="True Fisher's z",axes=FALSE,ylim=c(0,y.expand*max(yy)),lwd=2,ty='n')
+zz = seq(-1.2,0,len=200)
+yy = pnorm(crit2,zz,1/sqrt(n2-3))
+lines(zz, yy,lwd=2)
+abline(v = 0, col="gray")
+text(0,par()$usr[4],expression(rho==0),
+     srt=90,adj=c(1.5,1.2),col="gray")
+
+rect(zz[which.min((yy - .5)^2)],0,0,2,col=rgb(0,0,0,.3),density=10)
+
+box()
+axis(1)
+axis(2,at=0:4/4)
+axis(3, at = seq(-1,1,.5), lab=round(tanh(seq(-1,1,.5)),2))
+mtext(expression(paste("True correlation, ",rho)),3,2.5,adj=.5)
+mtext(expression(rho>=0),3,-1.5, adj=.95, cex=1.3)
+
+segments(z,0,z,pnorm(crit2,z,1/sqrt(n2-3)),col="red")
+segments(z,pnorm(crit2,z,1/sqrt(n2-3)),-1.2,pnorm(crit2,z,1/sqrt(n2-3)),col="red")
+
+```
+
+Power on top graph
+```{r}
+pnorm(crit,true.z2,1/sqrt(n-3))
+```
+Power on bottom graph
+```{r}
+pnorm(crit2,z,1/sqrt(n2-3))
+```
+
+Value with 50% power
+```{r}
+zz[which.min((yy - .5)^2)]
+```
+
+$p$ value for observation
+```{r}
+pnorm(z,true.z,1/sqrt(n-3))
+```
+
+----
+
+```{r}
+# Their result
+shuf = pi_dat_nona
+ccs = seq(.5,.99,len=100)
+ip = sapply(ccs,function(cc){
+  z = data.frame(t(apply(shuf,1,do.one,cc=cc)))
+  mean(!z$too_low & !z$too_high)
+})
+ip = data.frame("Inc.Prop" = ip)
+rownames(ip) = paste0(ccs * 100,"%")
+ip$Prop.of.Exp = ip[,1] / ccs
+```
+
+What proportion of the replications are in the prediction CI when we permute the results?
+```{r}
+# Randomize original results
+s = replicate(10000,{
+  shuf = pi_dat_nona
+  shuf$cor_orig = sample(shuf$cor_orig)
+  z = data.frame(t(apply(shuf,1,do.one)))
+  mean(!z$too_low & !z$too_high)
+})
+sr.rand = mean(s)
+
+sr.rand
+```
+
+
+What proportion of replications are in the prediction CI when we set all the original results to 0 effect size?
+```{r}
+# All original results 0
+shuf = pi_dat_nona
+shuf$cor_orig = shuf$cor_orig*0
+z = data.frame(t(apply(shuf,1,do.one)))
+sr.all0 = mean(!z$too_low & !z$too_high)
+
+sr.all0
+```
+
+
+What proportion of replications are in the prediction CI when we set all the original results to the same effect size of the replications, but with opposite sign?
+```{r}
+# original results opposite sign of replications
+shuf = pi_dat_nona
+shuf$cor_orig = -shuf$cor_rep
+z = data.frame(t(apply(shuf,1,do.one)))
+sr.oppsign = mean(!z$too_low & !z$too_high)
+
+sr.oppsign
+```
+
+```{r}
+Ns = dat[all.idx.in.dat,c("N..O.","N..R.")]
+cors = pi_dat_nona[all.idx,c("cor_orig","cor_rep","se_total")]
+spec_tab = cbind(Ns,cors[,1:2],atanh(cors[,1])-atanh(cors[,2]),cors[,3])
+rownames(spec_tab) = letters[1:nrow(spec_tab)]
+colnames(spec_tab) = c("Orig. N","Repl. N","Orig. r", "Repl. r","Observed difference (Fisher's z)","SE of difference (Fisher's z)")
+
+
+
+## ----special_table,echo=FALSE,results='asis'-----------------------------
+knitr::kable(spec_tab)
+```
+
+```{r echo=FALSE}
+in.95 = mean(!(pi_dat_nona$too_high | pi_dat_nona$too_low))
+in.se = mean(abs((atanh(pi_dat_nona$cor_orig) -  
+          atanh(pi_dat_nona$cor_rep))) < pi_dat_nona$se_total)
+in.99 = mean(abs((atanh(pi_dat_nona$cor_orig) -  
+          atanh(pi_dat_nona$cor_rep))) < qnorm(1-.01/2)*pi_dat_nona$se_total)
+
+in.50 = mean(abs((atanh(pi_dat_nona$cor_orig) -  
+          atanh(pi_dat_nona$cor_rep))) < qnorm(1-.5/2)*pi_dat_nona$se_total)
+
+```
+
+How many 95% prediction intervals contain replication?
+```{r}
+in.95*nrow(pi_dat_nona)
+```
+
+How many 99% prediction intervals contain replication?
+
+```{r}
+in.99*nrow(pi_dat_nona)
+```
+
+How many 50% prediction intervals contain replication?
+
+```{r}
+in.50*nrow(pi_dat_nona)
+```
+
+How many prediction SE intervals contain replication?
+```{r}
+in.se*nrow(pi_dat_nona)
+```
+
+
+```{r conf.coef,echo=FALSE,fig.width=6,fig.height=4}
+
+
+do.call(par,par.list)
+plot(ccs,ip[,1],ylab="Proportion included in pred. CI",xlab="Confidence Coefficient",ty='l',lwd=2,axes=FALSE,ylim=c(0,1))
+axis(2)
+segments(.95,in.95,par()$usr[1],in.95,col=rgb(0,0,0,.3),lty=2)
+segments(.95,in.95,.95,par()$usr[3],col=rgb(0,0,0,.3),lty=2)
+text(par()$usr[1],in.95,adj=c(-.1,-.1),"95% prediction CI")
+segments(1-2*pnorm(-1),in.se,par()$usr[1],in.se,col=rgb(0,0,0,.3),lty=2)
+segments(1-2*pnorm(-1),in.se,1-2*pnorm(-1),par()$usr[3],col=rgb(0,0,0,.3),lty=2)
+text(par()$usr[1],in.se,adj=c(-.1,-.1),"±1 pred. SE")
+
+axis(1, at = seq(.5,1,.1),lab=paste0(100*seq(.5,1,.1),"%"))
+abline(0,1,lty=3,col=rgb(1,0,0,.3))
+```
+
+```{r resid1,echo=FALSE,fig.width=6,fig.height=4}
+
+cx = sqrt(pi_dat_nona$n_orig / min(pi_dat_nona$n_orig)*.5)
+
+do.call(par,par.list)
+par(mfrow=c(1,1),mar=c(4,4,3.7,4))
+plot(atanh(pi_dat_nona$cor_orig),atanh(pi_dat_nona$cor_orig) - atanh(pi_dat_nona$cor_rep),
+     ylim=c(-1.4,1.4),ylab=c("Observed diff. (Fisher's z)"),xlab="Original study's correlation",
+     pch=21,col=NA,bg=rgb(!nsig,0,0,.3),cex=cx,axes=FALSE,
+     xlim=c(-.1,atanh(.9)))
+axis(2)
+axis(1, at = atanh(seq(0,.8,.2)),lab=seq(0,.8,.2))
+axis(3, at = seq(0,1.25,.25))
+mtext("Original study's Fisher's z",3,2.5,adj=.5)
+box()
+
+segments(atanh(pi_dat_nona$cor_orig),
+         atanh(pi_dat_nona$cor_orig) - atanh(pi_dat_nona$cor_rep) + pi_dat_nona$se_total,
+         atanh(pi_dat_nona$cor_orig),
+         atanh(pi_dat_nona$cor_orig) - atanh(pi_dat_nona$cor_rep) - pi_dat_nona$se_total,
+         rgb(!nsig,0,0,.4))
+abline(h=0,col=rgb(0,0,0,.3),lty=2)
+abline(v=0,col=rgb(0,0,0,.3),lty=2)
+abline(0,1,lty=3,col=rgb(0,0,1,.3))
+
+axis(4,at=seq(-1,1,.5),lab=round(tanh(seq(-1,1,.5)),2),cex.axis=1)
+mtext(expression(paste("Difference (correlation, original ",r==0,")")),4,2.9,adj=.5,las=3)
+mtext("Orig. > Repl.",3,-1.5,cex=1.3,adj=.05)
+mtext("Repl. > Orig.",1,-1.5,cex=1.3,adj=.05)
+
+for(i in 1:nrow(spec_tab)){
+  text(atanh(spec_tab$`Orig. r`[i]), spec_tab$`Observed difference (Fisher's z)`[i],letters[i],adj=c(1,1),cex=1.3)
+}
+```
+
+
+
+What is the median $z$ score?
+```{r echo=FALSE}
+median(z.score)
+```
+
+```{r power1,echo=FALSE,fig.width=6,fig.height=8}
+
+do.call(par,par.list)
+par(mfrow=c(2,1))
+
+plot(ecdf(z.score),main="",axes=FALSE,xlab="z score of difference",ylab="Proportion less than")
+axis(2,at = seq(0,1,len=6), las=1)
+axis(1)
+pp = round(c(2*pnorm(-1), .1, .05, .01, .001),3)
+axis(3, at = -qnorm(pp/2),pp,cex.axis=.75,las=3)
+axis(3, at = qnorm(pp/2),pp,cex.axis=.75,las=3)
+box()
+abline(h=c(1:4/5),col=rgb(0,0,0,.3))
+rect(par()$usr[1],par()$usr[3],par()$usr[2],par()$usr[4],col=rgb(1,0,0,.1),border=NA)
+for(i in 1:length(pp))
+rect(-qnorm(pp[i]/2),par()$usr[3],qnorm(pp[i]/2),par()$usr[4],col=rgb(0,0,1,.1),border=NA)
+xx = seq(-6,7,len=100)
+lines(xx,pnorm(xx),col="red",lty=2,lwd=1)
+mtext("Two-tailed p value", 3, 3, adj=.5)
+
+alpha = 0.05
+dev = seq(0,2.5,len=100)
+pows = sapply(1:nrow(pi_dat_nona),function(i){
+  pow = (1-pnorm(-qnorm(alpha/2),dev/pi_dat_nona$se_total[i])) + 
+    pnorm(qnorm(alpha/2),dev/pi_dat_nona$se_total[i])
+})
+matplot(dev,pows,ty='l',ylim=c(0,1),las=1,ylab=
+          substitute(paste("Power (",alpha == alp, ")", sep="" ),list(alp = alpha)),
+        xlab="True difference (Fisher's z)",col=rgb(0,0,0,.2),lwd=1,lty=1)
+abline(h=.8,col="black",lty=2)
+axis(3,at=seq(0,2.5,.33),lab=round(tanh(seq(0,2.5,.33)),2))
+mtext(expression(paste("True difference (correlation, original ",rho==0,")")),3,2.5,adj=.5)
+lines(dev,apply(pows,1,median),lwd=3,col="red",lty=1)
+lines(dev,apply(pows,1,quantile,p=.25),lwd=3,col="blue",lty=1)
+lines(dev,apply(pows,1,quantile,p=.75),lwd=3,col="blue",lty=1)
+
+```
+
+What are the quartiles of the power at a difference of .3?
+```{r echo=FALSE}
+quantile(sapply(1:nrow(pi_dat_nona),function(i){
+  pow = (1-pnorm(-qnorm(alpha/2),.3/pi_dat_nona$se_total[i])) + 
+    pnorm(qnorm(alpha/2),.3/pi_dat_nona$se_total[i])
+}), p = c(.25,.5,.75))
+
+```
+
+
+```{r echo=FALSE}
+dev = .3
+p.null = round(1-pchisq(z.score[all.idx]^2,1),3)
+p.sev = round(pchisq(z.score[all.idx]^2,1,(dev/pi_dat_nona$se_total[all.idx])^2),3)
+
+dd = seq(0,2.5,len=100)
+pp = sapply(dd,function(dev){
+  pchisq(z.score^2,1,ncp = (dev/pi_dat_nona$se_total)^2)
+})
+```
+
+
+These are the p values against the null.
+```{r}
+p.null
+```
+
+These are the p values against $d\geq.3$.
+```{r}
+p.sev
+```
+
+
+
+```{r severity1,echo=FALSE,fig.width=6,fig.height=6.5}
+
+do.call(par,par.list)
+par(mfrow=c(2,2),mar = c(4.5,4,4.5,2))
+dev = .3
+idx = all.idx[1]
+
+make.pvalue.plot(pi_dat_nona$cor_orig[idx],
+                 pi_dat_nona$n_orig[idx],
+                 pi_dat_nona$cor_rep[idx],
+                 pi_dat_nona$n_rep[idx],
+                 true.d = dev,
+                 xlims = c(-1,1.5),
+                 par.list = par.list,
+                 TRUE,
+                 TRUE)
+
+mtext("Study a",3,-1.3,adj=.95,cex=1)
+
+
+make.pvalue.curve.plot(pi_dat_nona$cor_orig[idx],
+                 pi_dat_nona$n_orig[idx],
+                 pi_dat_nona$cor_rep[idx],
+                 pi_dat_nona$n_rep[idx], true.d=.3, xmax=2.5, par.list = par.list)
+
+
+mtext("Study a",3,-1.3,adj=.95,cex=1)
+
+
+idx = all.idx[2]
+
+make.pvalue.plot(pi_dat_nona$cor_orig[idx],
+                 pi_dat_nona$n_orig[idx],
+                 pi_dat_nona$cor_rep[idx],
+                 pi_dat_nona$n_rep[idx],
+                 true.d = dev,
+                 xlims = c(-1,1.5),
+                 par.list = par.list,
+                 TRUE,
+                 TRUE)
+
+mtext("Study b",3,-1.3,adj=.95,cex=1)
+
+
+make.pvalue.curve.plot(pi_dat_nona$cor_orig[idx],
+                 pi_dat_nona$n_orig[idx],
+                 pi_dat_nona$cor_rep[idx],
+                 pi_dat_nona$n_rep[idx], true.d=.3, xmax=2.5, par.list = par.list)
+
+
+mtext("Study b",3,-1.3,adj=.95,cex=1)
+
+
+```
+
+```{r severity2,echo=FALSE,fig.width=6,fig.height=8}
+
+
+
+do.call(par,par.list)
+par(mfrow=c(2,1))
+matplot(dd,t(pp),ty='l',ylim=c(0,1),ylab=expression(paste(p[phantom()>phantom()], " value ")),xlab="True difference (abs. value of Fisher's z)",col=rgb((z.score^2>qchisq(.95,1)),0,0,.3),lwd=1,lty=(z.score^2>qchisq(.95,1))+1)
+axis(3,at=seq(0,2.5,.33),lab=round(tanh(seq(0,2.5,.33)),2),cex.axis=.75)
+mtext(expression(paste("True difference (correlation, original ",rho==0, ")")),3,2.5,adj=.5)
+matlines(dd,t(pp[all.idx[3:5],]),lwd=2,lty=(z.score[all.idx[3:5]]^2>qchisq(.95,1))+1,col=rgb((z.score[all.idx[3:5]]^2>qchisq(.95,1)),0,0,1))
+
+text(.05,.35,"c",cex=1.3)
+text(.95,.4,"d",cex=1.3)
+text(2,.2,"e",cex=1.3)
+
+plot(dd, colMeans(pp[(z.score^2<qchisq(.95,1)),]<0.05),col=rgb(0,0,0,1),ty='l',lwd=2,ylab=expression(paste("Proportion ",p[phantom()>phantom()]<0.05)),xlab="True difference (abs. value of Fisher's z)",ylim=c(0,1))
+abline(h=c(0,1),col=rgb(0,0,0,.5))
+abline(v=0,col=rgb(0,0,0,.5))
+
+axis(3,at=seq(0,2.5,.33),lab=round(tanh(seq(0,2.5,.33)),2),cex.axis=.75)
+mtext(expression(paste("True difference (correlation, original ",rho==0,")")),3,2.5,adj=.5)
+
+sev3 = mean(pchisq(z.score^2,1,ncp = (.3/pi_dat_nona$se_total)^2)[(z.score^2<qchisq(.95,1))]<.05)
+
+segments(.3,sev3,par()$usr[1],sev3,lty=2,col="gray")
+segments(.3,sev3,.3,par()$usr[3],lty=2,col="gray")
+axis(1, at = .3)
+
+```
+
+```{r reppower1,echo=FALSE,fig.width=6,fig.height=4}
+
+
+dev = seq(0,2.2,len=100)
+N = seq(10,2000,50)
+pp = outer(dev,N,function(dev,N2,N1,alpha=0.05){
+  1-pchisq(qchisq(1-alpha,1),1,dev^2/(1/(N1-3)+1/(N2-3)))
+},N1=9)
+
+filled.contour(dev,log(N),pp,ylab="Sample size",xlab="True difference (Fisher's z)",
+               plot.axes = {
+                 N.at = round(exp(seq(log(min(N)),log(max(N)),len=5)))
+                 axis(2,at=log(N.at),lab=N.at)
+                 axis(1)
+                 axis(3,at=seq(0,2.5,.33),lab=round(tanh(seq(0,2.5,.33)),2))
+                 mtext(expression(paste("True difference (correlation, original ", rho==0,")")),3,2.5,adj=.5)
+                 contour(dev, log(N), pp, levels = c(1:4/5,.95), 
+                         drawlabels = TRUE, axes = FALSE, 
+                         frame.plot = FALSE, add = TRUE,labcex = 1)
+                 abline(v=.3,col="gray",lty=2)
+                 text(.3,log(100),"True difference = 0.3",srt=90,col="gray",adj=c(.5,-.1))
+               },
+               key.title = title(main = "Power"),xlim=c(0,2))
+```
+
+
+```{r reppower2,echo=FALSE,fig.width=6,fig.height=4}
+do.call(par,par.list)
+
+#dev = seq(0,2.7,len=100)
+
+pow.lim = outer(dev,Inf,function(dev,N2,N1,alpha=0.05){
+  1-pchisq(qchisq(1-alpha,1),1,dev^2/(1/(N1-3)+1/(N2-3)))
+},N1=9)
+
+pow3 = 1-pchisq(qchisq(0.95,1),1,.3^2/(1/(9-3)+1/(Inf-3)))
+
+plot(dev,pow.lim,lwd=2,ty='l',xlab="True difference (Fisher's z)",ylab=expression(paste("Power limit (",N[rep]==infinity,")")),xlim=c(0,2),ylim=c(0,1),cex.lab=1)
+#mtext(expression(paste(N[orig]==9)),3,.1,adj=1,cex=1.3)
+abline(h=.8,col="black",lty=2)
+abline(h=c(0,1),col="gray",lty=1)
+abline(v=0,col="gray")
+segments(.3,pow3,par()$usr[1],pow3,lty=2,col="gray")
+segments(.3,pow3,.3,par()$usr[3],lty=2,col="gray")
+axis(3,at=seq(0,2,.33),lab=round(tanh(seq(0,2,.33)),2),cex.axis=.75)
+mtext(expression(paste("True difference (correlation, original ", rho==0,")")),3,2.5,adj=.5)
+
+axis(1,at=.3)
+axis(2,at=pow3,lab=round(pow3,2))
+```
+
+
+```{r reppower3,echo=FALSE,fig.width=6,fig.height=4}
+
+dev = seq(0,1,len=100)
+N = seq(50,2000,50)
+pp = outer(dev,N,function(dev,N,alpha=0.05){
+  1-pchisq(qchisq(1-alpha,1),1,dev^2/2 * (N-3))
+})
+
+filled.contour(dev,log(N),pp,ylab="Sample size",xlab="True difference (Fisher's z)",
+               plot.axes = {
+                 N.at = round(exp(seq(log(min(N)),log(max(N)),len=5)))
+                 axis(2,at=log(N.at),lab=N.at)
+                 axis(1)
+                 axis(3,at=seq(0,2.5,.33),lab=round(tanh(seq(0,2.5,.33)),2))
+                 mtext(expression(paste("True difference (correlation, original ",rho==0,")")),3,2.5,adj=.5)
+                 contour(dev, log(N), pp, levels = c(1:4/5,.95), 
+                         drawlabels = TRUE, axes = FALSE, 
+                         frame.plot = FALSE, add = TRUE,labcex = 1)
+               },
+               key.title = title(main = "Power"))
+
+
+```
+

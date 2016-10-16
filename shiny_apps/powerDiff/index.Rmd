@@ -1,0 +1,120 @@
+---
+title: "Powering for differences demo"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+require(flexdashboard)
+
+
+source('settings.R')
+
+
+```
+
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+
+
+selectInput("which_power", label = "Type of power:",
+            choices = c("Study 1/Study 2", "Difference from Study 1"))
+
+sliderInput("N1", "N for study 1 (solid)", 5, 2000, 54, step = 1)
+checkboxInput("same_N", "Set study 2 N to study 1 N?", value = FALSE)
+
+sliderInput("N2", "N for study 2 (dashed)", 5, 2000, 54, step = 1)
+
+
+selectInput("alpha", label = "α level",
+            choices = c(.1, .05, .01, .005, .001), selected = .05)
+
+sliderInput("upper", "x-axis upper limit", .2, 5, 1, step = .1)
+
+
+```
+
+
+Column {.tabset .tabset-fade}
+-------------------------------------
+    
+### Power function
+    
+```{r}
+
+renderPlot({
+
+  N1 = input$N1
+  N2 = ifelse(input$same_N,N1,input$N2)
+  alpha = as.numeric(input$alpha)
+  upper = as.numeric(input$upper)
+  
+  SE1 = 1 / sqrt(N1 - 3)
+  SE2 = 1 / sqrt(N2 - 3)
+  SEdiff = sqrt(SE1^2 + SE2^2)
+  
+  mySE = ifelse(input$which_power=="Study 1/Study 2",SE1,SEdiff)
+  
+  crits = qnorm(c(alpha/2,1-alpha/2),0,mySE)
+  crits2 = qnorm(c(alpha/2,1-alpha/2),0,SE2)
+  
+  zz = seq(0,upper*1.1,len=1000)
+  pow = sapply(zz,function(z){
+    1-diff(pnorm(crits,z,mySE))
+  })
+  
+  pow2 = sapply(zz,function(z){
+    1-diff(pnorm(crits2,z,SE2))
+  })
+  
+  do.call(par, par.list)
+  
+  axis1lab = ifelse(input$which_power=="Study 1/Study 2",
+                    "Fisher's z (abs. val.)",
+                    "Fisher's z diff. (abs. val.)")
+  axis3lab = ifelse(input$which_power=="Study 1/Study 2",
+                    "Correlation (abs. val.)",
+                    expression(paste("Correlation diff. (at ",rho[1]==0,", abs. val.)")))
+  
+  
+  plot(zz, pow, ty='l', lwd=2, ylim=c(0,1),xlim=c(0,upper),xlab=axis1lab,ylab="Power")
+  if(input$which_power=="Study 1/Study 2"){
+    lines(zz, pow2,lty=2)   
+  }
+  abline(v=0,col="black")
+  abline(h=alpha,col="gray",lty=2)
+  text(par()$usr[2],alpha,"Type I error rate",adj=c(1.2,-0.2),cex=1.5,col="gray")
+  points(0,alpha,pch=21,bg="white",col="black")
+  
+  r.tick = seq(0,upper,len=5)
+  axis(3,at=r.tick,lab=round(tanh(r.tick),2))
+  mtext(axis3lab,3,2.5,cex=par()$cex.lab)
+  
+  ## Shading
+  at.pow=c(.5,.8,.95)
+  segments(0*at.pow,at.pow,0*at.pow+par()$usr[2],at.pow,
+    col="gray",lwd=.8)
+  
+  for(i in 1:length(at.pow)){
+    z = zz[which.min((pow - at.pow[i])^2)]
+    rect(z,0,par()$usr[2],1,col=rgb(1,0,0,.05),border=NA)
+    text(par()$usr[2],at.pow[i],paste0(100*at.pow[i],"% power"),adj=c(1.2,-0.2),cex=1.5,col="gray")
+
+  }
+  
+  z = zz[which.min((pow - .5)^2)]
+  rect(0,0,z,1,col=rgb(0,0,1,.05),border=NA)
+
+  
+  
+})
+
+```
+   
+
