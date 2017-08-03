@@ -2,6 +2,10 @@
 
 Source code for the paper by Morey and Lakens, currently titled "Why most of psychology is statistically unfalsifiable".
 
+To cite Version 1 of this paper (the first submitted version), use the following DOI:
+[![DOI](https://zenodo.org/badge/71040160.svg)](https://zenodo.org/badge/latestdoi/71040160)
+
+
 In this repository:
 
 * The PDF for the paper (Read here: https://github.com/richarddmorey/psychology_resolution/blob/master/paper/response.pdf)
